@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 
 import argparse
+import csv
+import http.cookiejar
+import logging
 import pathlib
 import re
 import sys
 from datetime import datetime
-import csv
 
 import bs4
-import http.cookiejar
 import requests
-import logging
 
 parser = argparse.ArgumentParser()
 
