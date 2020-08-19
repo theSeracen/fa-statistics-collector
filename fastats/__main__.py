@@ -25,7 +25,7 @@ def get_profile_data(page: requests.Response):
     favourites = stats[0].contents[10].strip()
     comments = stats[1].contents[2].strip()
     watchers = soup.find('a', attrs={'target': '_blank'}).text
-    watchers = re.search(r'\d+', watchers).group()
+    watchers = re.search(r'\d+', watchers).group().strip()
 
     logger.info('{} views'.format(views))
     logger.info('{} submissions'.format(submissions))
@@ -71,6 +71,7 @@ if __name__ == "__main__":
 
     data = []
     for profile in args.profile:
+        logger.info('Retriving statistics for profile {}'.format(profile))
         page = requests.get('http://www.furaffinity.net/user/{}'.format(profile), cookies=args.cookies)
         profile_data = get_profile_data(page)
         data.append((profile, profile_data))
@@ -80,6 +81,7 @@ if __name__ == "__main__":
         with open(args.file, 'a') as file:
             writer = csv.writer(file)
             if exists is False:
+                logger.debug('Writing CSV header')
                 writer.writerow([
                     'Time',
                     'User',
@@ -91,6 +93,7 @@ if __name__ == "__main__":
                 ])
 
             for profile in data:
+                logger.debug('Writing row of data')
                 writer.writerow([
                     datetime.now().isoformat(),
                     profile[0],
