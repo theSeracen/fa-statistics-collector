@@ -15,6 +15,33 @@ import logging
 parser = argparse.ArgumentParser()
 
 
+def get_profile_data(profile_name: str, cookies: http.cookiejar.MozillaCookieJar):
+    page = requests.get('http://www.furaffinity.net/user/{}'.format(profile_name), cookies=cookies)
+    soup = bs4.BeautifulSoup(page.text, 'html.parser')
+
+    stats = soup.findAll('div', attrs={'class': 'cell'})
+
+    views = stats[0].contents[2].strip()
+    submissions = stats[0].contents[6].strip()
+    favourites = stats[0].contents[10].strip()
+    comments = stats[1].contents[2].strip()
+    watchers = soup.find('a', attrs={'target': '_blank'}).text
+    watchers = re.search(r'\d+', watchers).group()
+
+    logger.info('{} views'.format(views))
+    logger.info('{} submissions'.format(submissions))
+    logger.info('{} favourites'.format(favourites))
+    logger.info('{} comments'.format(comments))
+    logger.info('{} watchers'.format(watchers))
+
+    return {
+        'views': views,
+        'submissions': submissions,
+        'favourites': favourites,
+        'comments': comments,
+        'watchers': watchers}
+
+
 if __name__ == "__main__":
     logger = logging.getLogger()
     stream = logging.StreamHandler(sys.stdout)
@@ -43,25 +70,7 @@ if __name__ == "__main__":
     if args.file:
         args.file = pathlib.Path(args.file).resolve()
 
-    page = requests.get('http://www.furaffinity.net/user/{}'.format(args.profile), cookies=args.cookies)
-    soup = bs4.BeautifulSoup(page.text, 'html.parser')
-
-    stats = soup.findAll('div', attrs={'class': 'cell'})
-
-    views = stats[0].contents[2].strip()
-    submissions = stats[0].contents[6].strip()
-    favourites = stats[0].contents[10].strip()
-    comments = stats[1].contents[2].strip()
-
-    logger.info('{} views'.format(views))
-    logger.info('{} submissions'.format(submissions))
-    logger.info('{} favourites'.format(favourites))
-    logger.info('{} comments'.format(comments))
-
-    watchers = soup.find('a', attrs={'target': '_blank'}).text
-    watchers = re.search(r'\d+', watchers).group()
-
-    logger.info('{} watchers'.format(watchers))
+    profile_data = get_profile_data(args.profile, args.cookies)
 
     if args.file:
         exists = args.file.exists()
@@ -80,9 +89,9 @@ if __name__ == "__main__":
             writer.writerow([
                 datetime.now().isoformat(),
                 args.profile,
-                views,
-                submissions,
-                favourites,
-                comments,
-                watchers
+                profile_data['views'],
+                profile_data['submissions'],
+                profile_data['favourites'],
+                profile_data['comments'],
+                profile_data['watchers']
             ])
