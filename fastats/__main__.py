@@ -70,6 +70,7 @@ if __name__ == "__main__":
             if exists is False:
                 writer.writerow([
                     'Time',
+                    'User',
                     'Views',
                     'Submissions',
                     'Favourites',
@@ -78,6 +79,7 @@ if __name__ == "__main__":
                 ])
             writer.writerow([
                 datetime.now().isoformat(),
+                args.profile,
                 views,
                 submissions,
                 favourites,
