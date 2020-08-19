@@ -15,8 +15,7 @@ import logging
 parser = argparse.ArgumentParser()
 
 
-def get_profile_data(profile_name: str, cookies: http.cookiejar.MozillaCookieJar):
-    page = requests.get('http://www.furaffinity.net/user/{}'.format(profile_name), cookies=cookies)
+def get_profile_data(page: requests.Response):
     soup = bs4.BeautifulSoup(page.text, 'html.parser')
 
     stats = soup.findAll('div', attrs={'class': 'cell'})
@@ -70,7 +69,8 @@ if __name__ == "__main__":
     if args.file:
         args.file = pathlib.Path(args.file).resolve()
 
-    profile_data = get_profile_data(args.profile, args.cookies)
+    page = requests.get('http://www.furaffinity.net/user/{}'.format(args.profile), cookies=args.cookies)
+    profile_data = get_profile_data(page)
 
     if args.file:
         exists = args.file.exists()
