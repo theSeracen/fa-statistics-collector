@@ -49,7 +49,7 @@ if __name__ == "__main__":
     logger.addHandler(stream)
 
     parser.add_argument('cookies')
-    parser.add_argument('profile')
+    parser.add_argument('-p', '--profile', action='append')
     parser.add_argument('-f', '--file')
     parser.add_argument('-v', '--verbose', action='count', default=0)
     args = parser.parse_args()
@@ -69,8 +69,11 @@ if __name__ == "__main__":
     if args.file:
         args.file = pathlib.Path(args.file).resolve()
 
-    page = requests.get('http://www.furaffinity.net/user/{}'.format(args.profile), cookies=args.cookies)
-    profile_data = get_profile_data(page)
+    data = []
+    for profile in args.profile:
+        page = requests.get('http://www.furaffinity.net/user/{}'.format(profile), cookies=args.cookies)
+        profile_data = get_profile_data(page)
+        data.append((profile, profile_data))
 
     if args.file:
         exists = args.file.exists()
@@ -86,12 +89,14 @@ if __name__ == "__main__":
                     'Comments',
                     'Watchers'
                 ])
-            writer.writerow([
-                datetime.now().isoformat(),
-                args.profile,
-                profile_data['views'],
-                profile_data['submissions'],
-                profile_data['favourites'],
-                profile_data['comments'],
-                profile_data['watchers']
-            ])
+
+            for profile in data:
+                writer.writerow([
+                    datetime.now().isoformat(),
+                    profile[0],
+                    profile[1]['views'],
+                    profile[1]['submissions'],
+                    profile[1]['favourites'],
+                    profile[1]['comments'],
+                    profile[1]['watchers']
+                ])
