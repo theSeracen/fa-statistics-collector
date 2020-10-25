@@ -18,7 +18,13 @@ parser = argparse.ArgumentParser()
 def get_profile_data(page: requests.Response):
     soup = bs4.BeautifulSoup(page.text, 'html.parser')
 
+    if 'registered users only' in soup.text:
+        raise Exception('Cookies failed to authenticate request')
+
     stats = soup.findAll('div', attrs={'class': 'cell'})
+
+    if not stats:
+        raise Exception('Could not find any stats')
 
     flat_stats_1 = list(stats[0].descendants)
     flat_stats_2 = list(stats[1].descendants)
