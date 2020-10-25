@@ -16,3 +16,7 @@ There are the following options and arguments:
 - `-p, --profile`
 - `-f, --file`
 - `-v, --verbose`
+
+The `--profile` option can be provided multiple times to fetch the statistics for multiple profiles in a single run.
+
+The `--file` option will write the statistics to the specified file in CSV format, with the current date and time as well.
