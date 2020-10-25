@@ -20,10 +20,12 @@ def get_profile_data(page: requests.Response):
 
     stats = soup.findAll('div', attrs={'class': 'cell'})
 
-    views = stats[0].contents[2].strip()
-    submissions = stats[0].contents[6].strip()
-    favourites = stats[0].contents[10].strip()
-    comments = stats[1].contents[2].strip()
+    flat_stats_1 = list(stats[0].descendants)
+    flat_stats_2 = list(stats[1].descendants)
+    views = flat_stats_1[3].strip()
+    submissions = flat_stats_1[8].strip()
+    favourites = flat_stats_1[13].strip()
+    comments = flat_stats_2[3].strip()
     watchers = soup.find('a', attrs={'target': '_blank'}).text
     watchers = re.search(r'\d+', watchers).group().strip()
 
