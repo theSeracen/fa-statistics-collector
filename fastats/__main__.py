@@ -26,20 +26,28 @@ def get_profile_data(page: requests.Response):
     if not stats:
         raise Exception('Could not find any stats')
 
-    flat_stats_1 = list(stats[0].descendants)
-    flat_stats_2 = list(stats[1].descendants)
-    views = flat_stats_1[3].strip()
-    submissions = flat_stats_1[8].strip()
-    favourites = flat_stats_1[13].strip()
-    comments = flat_stats_2[3].strip()
-    watchers = soup.find('a', attrs={'target': '_blank'}).text
-    watchers = re.search(r'\d+', watchers).group().strip()
+    try:
+        flat_stats_1 = list(stats[0].descendants)
+        flat_stats_2 = list(stats[1].descendants)
 
-    logger.info('{} views'.format(views))
-    logger.info('{} submissions'.format(submissions))
-    logger.info('{} favourites'.format(favourites))
-    logger.info('{} comments'.format(comments))
-    logger.info('{} watchers'.format(watchers))
+        views = flat_stats_1[3].strip()
+        logger.info('{} views'.format(views))
+
+        submissions = flat_stats_1[8].strip()
+        logger.info('{} submissions'.format(submissions))
+
+        favourites = flat_stats_1[13].strip()
+        logger.info('{} favourites'.format(favourites))
+
+        comments = flat_stats_2[3].strip()
+        logger.info('{} comments'.format(comments))
+
+        watchers = soup.find('a', attrs={'target': '_blank'}).text
+        watchers = re.search(r'\d+', watchers).group().strip()
+        logger.info('{} watchers'.format(watchers))
+
+    except IndexError:
+        return None
 
     return {
         'views': views,
@@ -69,7 +77,6 @@ if __name__ == "__main__":
 
     args.cookies = pathlib.Path(args.cookies).resolve()
     if args.cookies.exists() is False:
-        logger.critical('Cannot find cookies file')
         raise Exception('Cookies file not found')
     else:
         args.cookies = http.cookiejar.MozillaCookieJar(args.cookies)
@@ -82,8 +89,15 @@ if __name__ == "__main__":
     for profile in args.profile:
         logger.info('Retriving statistics for profile {}'.format(profile))
         page = requests.get('http://www.furaffinity.net/user/{}'.format(profile), cookies=args.cookies)
+
+        if page.status_code != 200:
+            raise Exception('Page status code was not 200 for {}'.format(profile))
+
         profile_data = get_profile_data(page)
-        data.append((profile, profile_data))
+        if profile_data:
+            data.append((profile, profile_data))
+        else:
+            logger.error('Failed to get statistics for profile {}'.format(profile))
 
     if args.file:
         exists = args.file.exists()
