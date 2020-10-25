@@ -73,6 +73,7 @@ if __name__ == "__main__":
         raise Exception('Cookies file not found')
     else:
         args.cookies = http.cookiejar.MozillaCookieJar(args.cookies)
+        args.cookies.load()
 
     if args.file:
         args.file = pathlib.Path(args.file).resolve()
