@@ -12,7 +12,7 @@ This is a program that collects the following statistics from a profile page on 
 
 There are the following options and arguments:
 
-- `cookies`
+- `--cookies`
 - `-p, --profile`
 - `-f, --file`
 - `-v, --verbose`

@@ -18,9 +18,6 @@ parser = argparse.ArgumentParser()
 def get_profile_data(page: requests.Response):
     soup = bs4.BeautifulSoup(page.text, 'html.parser')
 
-    if 'registered users only' in soup.text:
-        raise Exception('Cookies failed to authenticate request')
-
     stats = soup.findAll('div', attrs={'class': 'cell'})
 
     if not stats:
@@ -64,7 +61,7 @@ if __name__ == "__main__":
     stream.setFormatter(formatter)
     logger.addHandler(stream)
 
-    parser.add_argument('cookies')
+    parser.add_argument('--cookies')
     parser.add_argument('-p', '--profile', action='append')
     parser.add_argument('-f', '--file')
     parser.add_argument('-v', '--verbose', action='count', default=0)
@@ -75,12 +72,13 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.INFO)
 
-    args.cookies = pathlib.Path(args.cookies).resolve()
-    if args.cookies.exists() is False:
-        raise Exception('Cookies file not found')
-    else:
-        args.cookies = http.cookiejar.MozillaCookieJar(args.cookies)
-        args.cookies.load()
+    if args.cookies:
+        args.cookies = pathlib.Path(args.cookies).resolve()
+        if args.cookies.exists() is False:
+            raise Exception('Cookies file not found')
+        else:
+            args.cookies = http.cookiejar.MozillaCookieJar(args.cookies)
+            args.cookies.load()
 
     if args.file:
         args.file = pathlib.Path(args.file).resolve()
@@ -92,6 +90,8 @@ if __name__ == "__main__":
 
         if page.status_code != 200:
             raise Exception('Page status code was not 200 for {}'.format(profile))
+        if 'registered users only' in page.text:
+            logger.error('Profile {} requires authentication and authentication failed'.format(profile))
 
         profile_data = get_profile_data(page)
         if profile_data:
