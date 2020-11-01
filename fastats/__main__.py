@@ -12,16 +12,21 @@ from datetime import datetime
 import bs4
 import requests
 
+from fastats.exceptions import ParsingException
+
 parser = argparse.ArgumentParser()
+logger = logging.getLogger()
 
 
-class ParsingException(Exception):
-    pass
+def get_profile_data(profile: str) -> dict[str, str]:
+    page = requests.get('http://www.furaffinity.net/user/{}'.format(profile), cookies=args.cookies)
 
+    if page.status_code != 200:
+        raise requests.RequestException('Page status code was not 200 for {}'.format(profile))
+    if 'registered users only' in page.text:
+        raise requests.RequestException('Profile {} requires authentication and authentication failed'.format(profile))
 
-def get_profile_data(page: requests.Response):
     soup = bs4.BeautifulSoup(page.text, 'html.parser')
-
     stats = soup.findAll('div', attrs={'class': 'cell'})
 
     if not stats:
@@ -54,19 +59,59 @@ def get_profile_data(page: requests.Response):
         'watchers': watchers}
 
 
+def _add_options():
+    parser.add_argument('--cookies')
+    parser.add_argument('-p', '--profile', action='append', default=[])
+    parser.add_argument('-f', '--file', help='File to log CSV data to')
+    parser.add_argument('--name-file', help='list of profile names to scrape stats from')
+    parser.add_argument('-v', '--verbose', action='count', default=0)
+
+
+def _read_names_from_file(name_file: pathlib.Path) -> list[str]:
+    if not name_file.exists():
+        raise Exception('Cannot find name file at {}'.format(name_file))
+    names = []
+    with open(name_file, 'r') as file:
+        for line in file.readlines():
+            if line and line != '\n':
+                names.append(line.strip())
+    return names
+
+
+def _write_data(filename: pathlib.Path, profile_data: list[tuple[str, dict]]):
+    exists = filename.exists()
+    with open(filename, 'a') as file:
+        writer = csv.writer(file)
+        if exists is False:
+            writer.writerow([
+                'Time',
+                'User',
+                'Views',
+                'Submissions',
+                'Favourites',
+                'Comments',
+                'Watchers'
+            ])
+        for profile in profile_data:
+            logger.debug('Writing row of data for profile {}'.format(profile[0]))
+            writer.writerow([
+                datetime.now().isoformat(),
+                profile[0],
+                profile[1]['views'],
+                profile[1]['submissions'],
+                profile[1]['favourites'],
+                profile[1]['comments'],
+                profile[1]['watchers']
+            ])
+
+
 if __name__ == "__main__":
-    logger = logging.getLogger()
     stream = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('[%(asctime)s - %(levelname)s] - %(message)s')
     stream.setFormatter(formatter)
     logger.addHandler(stream)
 
-    parser.add_argument('--cookies')
-    parser.add_argument('-p', '--profile', action='append', default=[])
-    parser.add_argument('-f', '--file', help='File to log CSV data to')
-    parser.add_argument('--name-file', help='list of profile names to scrape stats from')
-
-    parser.add_argument('-v', '--verbose', action='count', default=0)
+    _add_options()
     args = parser.parse_args()
 
     if args.verbose > 0:
@@ -88,59 +133,17 @@ if __name__ == "__main__":
 
     if args.name_file:
         args.name_file = pathlib.Path(args.name_file).resolve()
-        if not args.name_file.exists():
-            raise Exception('Cannot find name file at {}'.format(args.name_file))
-        with open(args.name_file, 'r') as file:
-            for line in file.readlines():
-                if line and line != '\n':
-                    args.profile.append(line.strip())
+        args.profile.append(_read_names_from_file(args.name_file))
 
-    data = []
+    collected_data = []
     for profile in args.profile:
         logger.info('Retrieving statistics for profile {}'.format(profile))
-        page = requests.get('http://www.furaffinity.net/user/{}'.format(profile), cookies=args.cookies)
-
-        if page.status_code != 200:
-            raise Exception('Page status code was not 200 for {}'.format(profile))
-        if 'registered users only' in page.text:
-            logger.error('Profile {} requires authentication and authentication failed'.format(profile))
-
         try:
-            profile_data = get_profile_data(page)
-        except (ParsingException, IndexError):
-            profile_data = None
-
-        if profile_data:
-            data.append((profile, profile_data))
-        else:
+            scraped_data = get_profile_data(profile)
+            collected_data.append((profile, scraped_data))
+        except (ParsingException, IndexError, requests.RequestException):
             logger.error('Failed to get statistics for profile {}'.format(profile))
 
     if args.file:
-        exists = args.file.exists()
-        with open(args.file, 'a') as file:
-            writer = csv.writer(file)
-            if exists is False:
-                logger.info('Data file does not exist; creating new file')
-                logger.debug('Writing CSV header')
-                writer.writerow([
-                    'Time',
-                    'User',
-                    'Views',
-                    'Submissions',
-                    'Favourites',
-                    'Comments',
-                    'Watchers'
-                ])
-
-            for profile in data:
-                logger.debug('Writing row of data for profile {}'.format(profile[0]))
-                writer.writerow([
-                    datetime.now().isoformat(),
-                    profile[0],
-                    profile[1]['views'],
-                    profile[1]['submissions'],
-                    profile[1]['favourites'],
-                    profile[1]['comments'],
-                    profile[1]['watchers']
-                ])
-        logger.info('Wrote {} profiles to file'.format(len(data)))
+        _write_data(args.file, collected_data)
+        logger.info('Wrote {} profiles to file'.format(len(collected_data)))
