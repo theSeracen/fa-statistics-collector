@@ -130,3 +130,4 @@ if __name__ == "__main__":
                     profile[1]['comments'],
                     profile[1]['watchers']
                 ])
+        logger.info('Wrote {} profiles to file'.format(len(data)))
