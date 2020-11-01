@@ -62,8 +62,10 @@ if __name__ == "__main__":
     logger.addHandler(stream)
 
     parser.add_argument('--cookies')
-    parser.add_argument('-p', '--profile', action='append')
-    parser.add_argument('-f', '--file')
+    parser.add_argument('-p', '--profile', action='append', default=[])
+    parser.add_argument('-f', '--file', help='File to log CSV data to')
+    parser.add_argument('--name-file', help='list of profile names to scrape stats from')
+
     parser.add_argument('-v', '--verbose', action='count', default=0)
     args = parser.parse_args()
 
@@ -82,6 +84,14 @@ if __name__ == "__main__":
 
     if args.file:
         args.file = pathlib.Path(args.file).resolve()
+
+    if args.name_file:
+        args.name_file = pathlib.Path(args.name_file).resolve()
+        if not args.name_file.exists():
+            raise Exception('Cannot find name file at {}'.format(args.name_file))
+        with open(args.name_file, 'r') as file:
+            for line in file.readlines():
+                args.profile.append(line.strip())
 
     data = []
     for profile in args.profile:
