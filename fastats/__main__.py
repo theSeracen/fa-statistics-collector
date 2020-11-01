@@ -91,7 +91,8 @@ if __name__ == "__main__":
             raise Exception('Cannot find name file at {}'.format(args.name_file))
         with open(args.name_file, 'r') as file:
             for line in file.readlines():
-                args.profile.append(line.strip())
+                if line and line != '\n':
+                    args.profile.append(line.strip())
 
     data = []
     for profile in args.profile:
