@@ -15,36 +15,36 @@ import requests
 parser = argparse.ArgumentParser()
 
 
+class ParsingException(Exception):
+    pass
+
+
 def get_profile_data(page: requests.Response):
     soup = bs4.BeautifulSoup(page.text, 'html.parser')
 
     stats = soup.findAll('div', attrs={'class': 'cell'})
 
     if not stats:
-        raise Exception('Could not find any stats')
+        raise ParsingException('Could not find any stats')
 
-    try:
-        flat_stats_1 = list(stats[0].descendants)
-        flat_stats_2 = list(stats[1].descendants)
+    flat_stats_1 = list(stats[0].descendants)
+    flat_stats_2 = list(stats[1].descendants)
 
-        views = flat_stats_1[3].strip()
-        logger.info('{} views'.format(views))
+    views = flat_stats_1[3].strip()
+    logger.info('{} views'.format(views))
 
-        submissions = flat_stats_1[8].strip()
-        logger.info('{} submissions'.format(submissions))
+    submissions = flat_stats_1[8].strip()
+    logger.info('{} submissions'.format(submissions))
 
-        favourites = flat_stats_1[13].strip()
-        logger.info('{} favourites'.format(favourites))
+    favourites = flat_stats_1[13].strip()
+    logger.info('{} favourites'.format(favourites))
 
-        comments = flat_stats_2[3].strip()
-        logger.info('{} comments'.format(comments))
+    comments = flat_stats_2[3].strip()
+    logger.info('{} comments'.format(comments))
 
-        watchers = soup.find('a', attrs={'target': '_blank'}).text
-        watchers = re.search(r'\d+', watchers).group().strip()
-        logger.info('{} watchers'.format(watchers))
-
-    except IndexError:
-        return None
+    watchers = soup.find('a', attrs={'target': '_blank'}).text
+    watchers = re.search(r'\d+', watchers).group().strip()
+    logger.info('{} watchers'.format(watchers))
 
     return {
         'views': views,
@@ -93,7 +93,11 @@ if __name__ == "__main__":
         if 'registered users only' in page.text:
             logger.error('Profile {} requires authentication and authentication failed'.format(profile))
 
-        profile_data = get_profile_data(page)
+        try:
+            profile_data = get_profile_data(page)
+        except (ParsingException, IndexError):
+            profile_data = None
+
         if profile_data:
             data.append((profile, profile_data))
         else:
