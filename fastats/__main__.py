@@ -81,6 +81,7 @@ if __name__ == "__main__":
         else:
             args.cookies = http.cookiejar.MozillaCookieJar(args.cookies)
             args.cookies.load()
+            logger.debug('Cookies loaded')
 
     if args.file:
         args.file = pathlib.Path(args.file).resolve()
@@ -119,6 +120,7 @@ if __name__ == "__main__":
         with open(args.file, 'a') as file:
             writer = csv.writer(file)
             if exists is False:
+                logger.info('Data file does not exist; creating new file')
                 logger.debug('Writing CSV header')
                 writer.writerow([
                     'Time',
@@ -131,7 +133,7 @@ if __name__ == "__main__":
                 ])
 
             for profile in data:
-                logger.debug('Writing row of data')
+                logger.debug('Writing row of data for profile {}'.format(profile[0]))
                 writer.writerow([
                     datetime.now().isoformat(),
                     profile[0],
