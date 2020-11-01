@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     data = []
     for profile in args.profile:
-        logger.info('Retriving statistics for profile {}'.format(profile))
+        logger.info('Retrieving statistics for profile {}'.format(profile))
         page = requests.get('http://www.furaffinity.net/user/{}'.format(profile), cookies=args.cookies)
 
         if page.status_code != 200:
