@@ -56,7 +56,9 @@ def get_profile_data(profile: str) -> dict[str, str]:
         'submissions': submissions,
         'favourites': favourites,
         'comments': comments,
-        'watchers': watchers}
+        'watchers': watchers,
+        'user': profile,
+        'time': datetime.now().isoformat()}
 
 
 def _add_options():
@@ -78,31 +80,16 @@ def _read_names_from_file(name_file: pathlib.Path) -> list[str]:
     return names
 
 
-def _write_data(filename: pathlib.Path, profile_data: list[tuple[str, dict]]):
+def _write_data(filename: pathlib.Path, profile_data: list[dict]):
     exists = filename.exists()
     with open(filename, 'a') as file:
-        writer = csv.writer(file)
+        headers = ['time', 'user', 'views', 'submissions', 'favourites', 'comments', 'watchers']
+        writer = csv.DictWriter(file, headers)
         if exists is False:
-            writer.writerow([
-                'Time',
-                'User',
-                'Views',
-                'Submissions',
-                'Favourites',
-                'Comments',
-                'Watchers'
-            ])
+            writer.writeheader()
         for profile in profile_data:
             logger.debug('Writing row of data for profile {}'.format(profile[0]))
-            writer.writerow([
-                datetime.now().isoformat(),
-                profile[0],
-                profile[1]['views'],
-                profile[1]['submissions'],
-                profile[1]['favourites'],
-                profile[1]['comments'],
-                profile[1]['watchers']
-            ])
+            writer.writerow(profile)
 
 
 if __name__ == "__main__":
@@ -139,8 +126,7 @@ if __name__ == "__main__":
     for profile in args.profile:
         logger.info('Retrieving statistics for profile {}'.format(profile))
         try:
-            scraped_data = get_profile_data(profile)
-            collected_data.append((profile, scraped_data))
+            collected_data.append(get_profile_data(profile))
         except (ParsingException, IndexError, requests.RequestException):
             logger.error('Failed to get statistics for profile {}'.format(profile))
 
