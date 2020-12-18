@@ -32,6 +32,7 @@ def get_profile_data(profile: str) -> dict[str, str]:
     if not stats:
         raise ParsingException('Could not find any stats')
 
+    # these are all magic numbers at the moment
     flat_stats_1 = list(stats[0].descendants)
     flat_stats_2 = list(stats[1].descendants)
 
@@ -61,7 +62,7 @@ def get_profile_data(profile: str) -> dict[str, str]:
         'time': datetime.now().isoformat()}
 
 
-def _add_options():
+def _add_parser_options():
     parser.add_argument('--cookies')
     parser.add_argument('-p', '--profile', action='append', default=[])
     parser.add_argument('-f', '--file', help='File to log CSV data to')
@@ -75,7 +76,8 @@ def _read_names_from_file(name_file: pathlib.Path) -> list[str]:
     names = []
     with open(name_file, 'r') as file:
         for line in file.readlines():
-            if line and line != '\n':
+            line = line.strip('\n').strip()
+            if line:
                 names.append(line.strip())
     return names
 
@@ -83,28 +85,31 @@ def _read_names_from_file(name_file: pathlib.Path) -> list[str]:
 def _write_data(filename: pathlib.Path, profile_data: list[dict]):
     exists = filename.exists()
     with open(filename, 'a') as file:
-        headers = ['time', 'user', 'views', 'submissions', 'favourites', 'comments', 'watchers']
+        headers = ('time', 'user', 'views', 'submissions', 'favourites', 'comments', 'watchers')
         writer = csv.DictWriter(file, headers)
         if exists is False:
             writer.writeheader()
         for profile in profile_data:
-            logger.debug('Writing row of data for profile {}'.format(profile[0]))
+            logger.debug('Writing row of data for profile {}'.format(profile['user']))
             writer.writerow(profile)
 
 
-if __name__ == "__main__":
+def _setup_logger(verbosity_level: int):
     stream = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter('[%(asctime)s - %(levelname)s] - %(message)s')
     stream.setFormatter(formatter)
     logger.addHandler(stream)
-
-    _add_options()
-    args = parser.parse_args()
-
-    if args.verbose > 0:
+    if verbosity_level > 0:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
+
+
+if __name__ == "__main__":
+    _add_parser_options()
+    args = parser.parse_args()
+
+    _setup_logger(args.verbose)
 
     if args.cookies:
         args.cookies = pathlib.Path(args.cookies).resolve()
@@ -120,7 +125,7 @@ if __name__ == "__main__":
 
     if args.name_file:
         args.name_file = pathlib.Path(args.name_file).resolve()
-        args.profile.append(_read_names_from_file(args.name_file))
+        args.profile.extend(_read_names_from_file(args.name_file))
 
     collected_data = []
     for profile in args.profile:
